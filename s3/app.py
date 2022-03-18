@@ -39,6 +39,15 @@ db = {
     ]
 }
 
+def get_music(headers, music_id):
+    payload = {"objtype": "music", "objkey": music_id}
+    url = db['name'] + '/' + db['endpoint'][0]
+    response = requests.get(
+        url,
+        params=payload,
+        headers={'Authorization': headers['Authorization']})
+    return response.json()
+
 @bp.route('/', methods=['GET'])
 @metrics.do_not_track()
 def hello_world():
@@ -66,8 +75,30 @@ def get_playlist(playlist_id):
 
 @bp.route('/', methods=['POST'])
 def create_playlist():
-    pass
+    headers = request.headers
+    try:
+        content = request.get_json()
+        playlist_name = content['PlaylistName']
+        music_ids = content['Songs'].strip().split(",")
+    except Exception:
+        return json.dumps({"message": "error reading arguments"})
 
+    for music_id in music_ids:
+        if(music_id != ''):
+            response = get_music(headers, music_id)
+            if response['Count'] == 0:
+                return Response(json.dumps({"error": "No Such Song Exists"}),
+                                status=500, mimetype='application/json')
+
+    url = db['name'] + '/' + db['endpoint'][1]
+    payload = {"objtype": "playlist",
+               "PlaylistName": playlist_name,
+               "Songs": music_ids}
+    response = requests.post(
+        url,
+        json=payload,
+        headers={'Authorization': headers['Authorization']})
+    return (response.json())
 
 @bp.route('/<playlist_id>', methods=['DELETE'])
 def delete_playlist(playlist_id):
