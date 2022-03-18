@@ -39,6 +39,8 @@ db = {
     ]
 }
 
+AUTH_FAILURE_STRING = "Auth Failed"
+
 def get_music(headers, music_id):
     payload = {"objtype": "music", "objkey": music_id}
     url = db['name'] + '/' + db['endpoint'][0]
@@ -47,6 +49,11 @@ def get_music(headers, music_id):
         params=payload,
         headers={'Authorization': headers['Authorization']})
     return response.json()
+
+def check_authorization(headers, Response):
+    if 'Authorization' not in headers:
+        return False
+    return True
 
 @bp.route('/', methods=['GET'])
 @metrics.do_not_track()
@@ -71,11 +78,10 @@ def readiness():
 @bp.route('/<playlist_id>', methods=['GET'])
 def get_playlist(playlist_id):
     headers = request.headers
-    if 'Authorization' not in headers:
-        return Response(
-            json.dumps({"error": "Authorization is missing."}),
-            status=401,
-            mimetype='application/json')
+    if (not check_authorization(headers,Response)):
+        return Response(json.dumps({"error": AUTH_FAILURE_STRING}),
+                            status=500,
+                            mimetype='application/json')
     payload = {"objtype": "playlist", "objkey": playlist_id}
     url = db['name'] + '/' + db['endpoint'][0]
     response = requests.get(
@@ -88,6 +94,10 @@ def get_playlist(playlist_id):
 @bp.route('/', methods=['POST'])
 def create_playlist():
     headers = request.headers
+    if (not check_authorization(headers,Response)):
+        return Response(json.dumps({"error": AUTH_FAILURE_STRING}),
+                            status=500,
+                            mimetype='application/json')
     try:
         content = request.get_json()
         playlist_name = content['PlaylistName']
