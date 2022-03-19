@@ -70,7 +70,19 @@ def readiness():
 
 @bp.route('/<playlist_id>', methods=['GET'])
 def get_playlist(playlist_id):
-    pass
+    headers = request.headers
+    if 'Authorization' not in headers:
+        return Response(
+            json.dumps({"error": "Authorization is missing."}),
+            status=401,
+            mimetype='application/json')
+    payload = {"objtype": "playlist", "objkey": playlist_id}
+    url = db['name'] + '/' + db['endpoint'][0]
+    response = requests.get(
+        url,
+        params=payload,
+        headers={'Authorization': headers['Authorization']})
+    return (response.json())
 
 
 @bp.route('/', methods=['POST'])
