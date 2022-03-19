@@ -126,7 +126,19 @@ def create_playlist():
 
 @bp.route('/<playlist_id>', methods=['DELETE'])
 def delete_playlist(playlist_id):
-    pass
+    headers = request.headers
+    # check header here
+    if (not check_authorization(headers,Response)):
+        return Response(json.dumps({"error": AUTH_FAILURE_STRING}),
+                        status=401,
+                        mimetype='application/json')
+    payload = {"objtype": "playlist", "objkey": playlist_id}
+    url = db['name'] + '/' + db['endpoint'][2]
+    response = requests.delete(
+        url,
+        params=payload,
+        headers={'Authorization': headers['Authorization']})
+    return (response.json())
 
 @bp.route('/<playlist_id>/add', methods=['POST'])
 def add_song(playlist_id):
