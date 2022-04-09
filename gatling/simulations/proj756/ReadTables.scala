@@ -107,6 +107,31 @@ object RBoth {
 
 }
 
+object RAll {
+
+  val u_feeder = csv("users.csv").eager.circular
+  val m_feeder = csv("music.csv").eager.random
+  val p_feeder = csv("playlist.csv").eager.random
+
+  val rall = forever("i") {
+    feed(u_feeder)
+    .exec(http("RUser ${i}")
+      .get("/api/v1/user/${UUID}"))
+    .pause(1);
+
+    feed(m_feeder)
+    .exec(http("RMusic ${i}")
+      .get("/api/v1/music/${UUID}"))
+      .pause(1)
+
+    feed(p_feeder)
+    .exec(http("RPlaylist ${i}")
+      .get("/api/v1/playlist/${playlist_id}"))
+      .pause(1)
+  }
+
+}
+
 // Get Cluster IP from CLUSTER_IP environment variable or default to 127.0.0.1 (Minikube)
 class ReadTablesSim extends Simulation {
   val httpProtocol = http
@@ -155,6 +180,15 @@ class ReadBothVaryingSim extends ReadTablesSim {
   ).protocols(httpProtocol)
 }
 
+
+class ReadAllSim extends ReadTablesSim {
+  val scnReadAll = scenario("ReadAll")
+    .exec(RAll.rall)
+
+  setUp(
+    scnReadAll.inject(atOnceUsers(1))
+  ).protocols(httpProtocol)
+}
 /*
   This doesn't work---it just reads the Music table.
   We left it in here as possible inspiration for other work
