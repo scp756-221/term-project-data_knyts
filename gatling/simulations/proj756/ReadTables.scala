@@ -54,6 +54,30 @@ object RUser {
 
 }
 
+object RWUser {
+
+  val feeder = csv("users.csv").eager.circular
+
+  val rwuser = feed(feeder)
+              .exec(http("WUser")
+              .post("/api/v1/user/${UUID}"))
+              .exec(http("Write User")
+                        .post("/api/v1/user/${UUID}")
+                        .header("Content-Type" , "application/json")
+                        .body(StringBody(string = """{
+                            "lname": "${lname}",
+                            "fname": "${fname}"
+                            "email": "${email}"
+                          }""" ))
+                        .check(status.is(200))
+                        .check(jsonPath("$..user_id").ofType[String].saveAs("user_id")))
+              .pause(1)
+              .exec(http("RUser")
+                .get("/api/v1/user/${user_id}")
+                .check(status.is(200)))
+              .pause(1)
+}
+
 /*
   After one S1 read, pause a random time between 1 and 60 s
 */
@@ -122,6 +146,15 @@ class ReadUserSim extends ReadTablesSim {
 
   setUp(
     scnReadUser.inject(atOnceUsers(Utility.envVarToInt("USERS", 1)))
+  ).protocols(httpProtocol)
+}
+
+class ReadWriteUserSim extends ReadTablesSim {
+  val scnReadWriteUser = scenario("ReadWriteUser")
+    .exec(RWUser.rwuser)
+
+  setUp(
+    scnReadWriteUser.inject(atOnceUsers(Utility.envVarToInt("USERS", 1)))
   ).protocols(httpProtocol)
 }
 
