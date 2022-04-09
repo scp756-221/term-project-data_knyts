@@ -41,6 +41,46 @@ object RMusic {
 
 }
 
+object DMusic {
+
+  val feeder = csv("music.csv").eager.random
+
+  val dmusic = feed(feeder)
+              exec(http("DMusic")
+                .delete("/api/v1/music/${UUID}")
+                //.delete("/api/v1/music/75228fe1-b435-40fe-b24c-50c33858d8a8")
+                .check(status.is(200)))
+                .pause(1)
+ 
+}
+
+object RWDMusic {
+
+  val feeder = csv("music.csv").eager.circular
+
+  val rwdmusic = forever("i"){
+                feed(feeder)
+                .exec(http("Write Music ${i}")
+                        .post("/api/v1/music/")
+                        .header("Content-Type" , "application/json")
+                        .body(StringBody(string = """{
+                            "Artist": "${Artist}",
+                            "SongTitle": "${SongTitle}"
+                          }""" ))
+                        .check(status.is(200))
+                        .check(jsonPath("$..music_id").ofType[String].saveAs("music_id")))
+                .pause(1)
+                .exec(http("Read Music ${i}")
+                        .get("/api/v1/music/${music_id}")
+                        .check(status.is(200)))
+                .pause(1)
+                .exec(http("Delete Music ${i}")
+                        .delete("/api/v1/music/${music_id}")
+                        .check(status.is(200)))
+                .pause(1)
+  }
+}
+
 object RUser {
 
   val feeder = csv("users.csv").eager.circular
@@ -111,7 +151,7 @@ object RBoth {
 class ReadTablesSim extends Simulation {
   val httpProtocol = http
     .baseUrl("http://" + Utility.envVar("CLUSTER_IP", "127.0.0.1") + "/")
-    .acceptHeader("application/json,text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
+    .acceptHeader("application/json,text/html,application/xhtml+xml,application/xml;q=0.9,/;q=0.8")
     .authorizationHeader("Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjoiZGJmYmMxYzAtMDc4My00ZWQ3LTlkNzgtMDhhYTRhMGNkYTAyIiwidGltZSI6MTYwNzM2NTU0NC42NzIwNTIxfQ.zL4i58j62q8mGUo5a0SQ7MHfukBUel8yl8jGT5XmBPo")
     .acceptLanguageHeader("en-US,en;q=0.5")
 }
@@ -131,6 +171,24 @@ class ReadMusicSim extends ReadTablesSim {
 
   setUp(
     scnReadMusic.inject(atOnceUsers(Utility.envVarToInt("USERS", 1)))
+  ).protocols(httpProtocol)
+}
+
+class DeleteMusicSim extends ReadTablesSim {
+  val scnDeleteMusic = scenario("DeleteMusic")
+    .exec(DMusic.dmusic)
+
+  setUp(
+    scnDeleteMusic.inject(atOnceUsers(Utility.envVarToInt("USERS", 1)))
+  ).protocols(httpProtocol)
+}
+
+class ReadWriteDeleteMusicSim extends ReadTablesSim {
+  val scnReadWriteDeleteMusic = scenario("ReadWriteDeleteMusic")
+    .exec(RWDMusic.rwdmusic)
+
+  setUp(
+    scnReadWriteDeleteMusic.inject(atOnceUsers(Utility.envVarToInt("USERS", 1)))
   ).protocols(httpProtocol)
 }
 
