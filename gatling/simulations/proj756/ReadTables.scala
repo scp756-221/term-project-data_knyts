@@ -271,13 +271,23 @@ class ReadBothVaryingSim extends ReadTablesSim {
   ).protocols(httpProtocol)
 }
 
-
 class ReadAllSim extends ReadTablesSim {
-  val scnReadAll = scenario("ReadAll")
-    .exec(RAll.rall)
+  val scnReadM = scenario("ReadMusic")
+    .exec(RMusic.rmusic)
+
+  val scnReadU = scenario("ReadUser")
+    .exec(RUser.ruser)
+
+  val scnReadP = scenario("ReadPlaylist")
+    .exec(RPlaylist.rplaylist)
+
+  val users = Utility.envVarToInt("USERS", 10)
 
   setUp(
-    scnReadAll.inject(atOnceUsers(1))
+    // Add one user per 10 s up to specified value
+    scnReadU.inject(atOnceUsers(users)),
+    scnReadM.inject(atOnceUsers(users)),
+    scnReadP.inject(atOnceUsers(users))
   ).protocols(httpProtocol)
 }
 /*
