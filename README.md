@@ -104,7 +104,7 @@ make -f k8s.mak prometheus-url
 The command below can be run to generate test load using Gatling:
 
 ~~~
-TODO: 
+bash gatling-scripts/gatling-n-sim.sh <USER_NUMBER> ReadAllSim_Alt
 ~~~
 
 And the following command stops Gatling jobs that are currently running:
