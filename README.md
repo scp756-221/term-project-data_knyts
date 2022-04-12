@@ -104,13 +104,27 @@ make -f k8s.mak prometheus-url
 The command below can be run to generate test load using Gatling:
 
 ~~~
-./gatling-<service>.sh <Number_of_service_objects> <delay_between_each_request_in_ms>
+TODO: 
 ~~~
 
 And the following command stops Gatling jobs that are currently running:
 
 ~~~
 ./tools/kill-gatling.sh
+~~~
+
+#### Scaling
+
+~~~
+kubectl scale deployment/'service_name' --replicas='number_of_replicas'
+~~~
+Example: 
+~~~
+kubectl scale deployment/cmpt756db --replicas=10
+~~~
+Checking the change
+~~~
+kubectl describe deploy/cmpt756db
 ~~~
 
 ## Killing the Cluster
